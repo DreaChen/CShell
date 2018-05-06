@@ -1,0 +1,67 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <dirent.h>
+#include <unistd.h>
+
+#define MAXLINE 80 /* The maximum length command */
+
+int main(void){
+		char *args[MAXLINE/2 + 1]; /* command line with max 40 arguments */
+		char line[MAXLINE] = " ";
+		char *token = NULL;
+		const char delimiter[2] = " \n";
+		int should_run = 1; /* flag to determine when to exit program */
+		int con = 0; /* flag to determine if programs run concurrently or not */
+		int i = 0; /* counter */
+		pid_t pid = 0;
+
+		printf("Shell from Andrea Chen\n");
+		while (should_run){
+			con = i = 0;
+			printf("Andrea-819> "); /* prompt */
+			fflush(stdout);
+			fgets(line, MAXLINE, stdin); /* reads user input */
+			token = strtok(line, delimiter); /* extract first token */
+			
+			if (strcmp(token, "exit") == 0){ /* if user enters exit, should_run = 0 and shell exits */
+				should_run = 0;
+				return 0;
+			}
+
+			while(token != NULL){ /* extract the rest of tokens */
+				if (strcmp(token, "&") != 0){
+					args[i] = token;
+					i++;
+				}
+				else {
+					con = 1;
+				}
+				token = strtok(NULL, delimiter);
+			}
+			args[i] = NULL; /* add NULL to end of args */
+
+
+			pid = fork(); /* fork() to create child process */
+			if (pid < 0){ /* if fork() < 0, then fork() has failed */
+				printf("Fork Error \n");
+			}
+			else if (pid == 0){ /* child executes command */
+				execvp(args[0], args);
+				printf("Exec Error \n"); /* Exec error if execvp returns */
+				exit(0);
+			}
+			else {
+				if (con){
+					continue; /* run programs concurrently if no "&" in command line */
+				}
+				else{
+					wait(NULL); /* parent invokes wait() if there is no "&" in command */
+				}
+			}
+		}
+		return 0;
+}
